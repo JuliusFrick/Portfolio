@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Charts - Visualisierungen</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .chart-card h3 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container.small {
+            height: 300px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #718096;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            text-align: center;
+            color: #e53e3e;
+            padding: 20px;
+            background: #fed7d7;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .control-group select {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: white;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            align-self: end;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .profit {
+            color: #48bb78;
+        }
+
+        .loss {
+            color: #f56565;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-controls {
+                flex-direction: column;
+            }
+            
+            .control-group {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Portfolio Visualisierungen</h1>
+            <p>Detaillierte Analyse und Vergleiche Ihres Portfolios</p>
+        </div>
+
+        <div class="nav-links">
+            <a href="/">← Zurück zum Portfolio</a>
+            <a href="#allocation">Allokation</a>
+            <a href="#performance">Performance</a>
+            <a href="#comparison">ETF-Vergleich</a>
+        </div>
+
+        <div class="charts-grid">
+            <!-- Portfolio Allocation Pie Chart -->
+            <div class="chart-card" id="allocation">
+                <h3>💼 Portfolio-Allokation</h3>
+                <div class="chart-container small">
+                    <canvas id="allocationChart"></canvas>
+                </div>
+                <div id="allocationStats" class="stats-grid"></div>
+            </div>
+
+            <!-- Profit/Loss Bar Chart -->
+            <div class="chart-card">
+                <h3>💰 Gewinn/Verlust pro Position</h3>
+                <div class="chart-container small">
+                    <canvas id="profitLossChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Portfolio Performance Over Time -->
+            <div class="chart-card full-width" id="performance">
+                <h3>📈 Portfolio-Performance über Zeit</h3>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Portfolio vs ETF Comparison -->
+            <div class="chart-card full-width" id="comparison">
+                <h3>⚖️ Portfolio vs ETF Vergleich</h3>
+                <div class="chart-controls">
+                    <div class="control-group">
+                        <label for="etfCompareSelect">ETF auswählen:</label>
+                        <select id="etfCompareSelect">
+                            <option value="SPY">SPY - S&P 500 ETF</option>
+                            <option value="QQQ">QQQ - NASDAQ-100 ETF</option>
+                            <option value="VTI">VTI - Total Stock Market ETF</option>
+                            <option value="IVV">IVV - iShares Core S&P 500 ETF</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="timeRangeSelect">Zeitraum:</label>
+                        <select id="timeRangeSelect">
+                            <option value="30">30 Tage</option>
+                            <option value="90">3 Monate</option>
+                            <option value="180" selected>6 Monate</option>
+                            <option value="365">1 Jahr</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="loadComparisonChart()">Aktualisieren</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PortfolioCharts {
+            constructor() {
+                this.apiBase = '/api';
+                this.charts = {};
+                this.init();
+            }
+
+            init() {
+                this.loadAllCharts();
+            }
+
+            async loadAllCharts() {
+                await Promise.all([
+                    this.loadAllocationChart(),
+                    this.loadProfitLossChart(),
+                    this.loadPerformanceChart(),
+                    this.loadComparisonChart()
+                ]);
+            }
+
+            async loadAllocationChart() {
+                try {
+                    const response = await fetch(`${this.apiBase}/charts/portfolio/allocation`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.renderAllocationChart(result.data, result.total_value);
+                        this.renderAllocationStats(result.data);
+                    } else {
+                        this.showError('allocationChart', result.error);
+                    }
+                } catch (error) {
+                    this.showError('allocationChart', 'Fehler beim Laden der Allokationsdaten');
+                }
+            }
+
+            renderAllocationChart(data, totalValue) {
+                const ctx = document.getElementById('allocationChart').getContext('2d');
+                
+                if (this.charts.allocation) {
+                    this.charts.allocation.destroy();
+                }
+
+                const colors = [
+                    '#667eea', '#764ba2', '#f093fb', '#f5576c',
+                    '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+                    '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
+                ];
+
+                this.charts.allocation = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.map(item => `${item.symbol} (${item.percentage.toFixed(1)}%)`),
+                        datasets: [{
+                            data: data.map(item => item.value),
+                            backgroundColor: colors.slice(0, data.length),
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const item = data[context.dataIndex];
+                                        return `${item.symbol}: €${item.value.toFixed(2)} (${item.percentage.toFixed(1)}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            renderAllocationStats(data) {
+                const statsDiv = document.getElementById('allocationStats');
+                const topHoldings = data.slice(0, 3);
+                
+                statsDiv.innerHTML = topHoldings.map(item => `
+                    <div class="stat-item">
+                        <div class="stat-value">${item.percentage.toFixed(1)}%</div>
+                        <div class="stat-label">${item.symbol}</div>
+                    </div>
+                `).join('');
+            }
+
+            async loadProfitLossChart() {
+                try {
+                    const response = await fetch(`${this.apiBase}/charts/portfolio/profit-loss`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.renderProfitLossChart(result.data);
+                    } else {
+                        this.showError('profitLossChart', result.error);
+                    }
+                } catch (error) {
+                    this.showError('profitLossChart', 'Fehler beim Laden der Gewinn/Verlust-Daten');
+                }
+            }
+
+            renderProfitLossChart(data) {
+                const ctx = document.getElementById('profitLossChart').getContext('2d');
+                
+                if (this.charts.profitLoss) {
+                    this.charts.profitLoss.destroy();
+                }
+
+                this.charts.profitLoss = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(item => item.symbol),
+                        datasets: [{
+                            label: 'Gewinn/Verlust (€)',
+                            data: data.map(item => item.profit_loss),
+                            backgroundColor: data.map(item => 
+                                item.profit_loss >= 0 ? '#48bb78' : '#f56565'
+                            ),
+                            borderColor: data.map(item => 
+                                item.profit_loss >= 0 ? '#38a169' : '#e53e3e'
+                            ),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const item = data[context.dataIndex];
+                                        return [
+                                            `Gewinn/Verlust: €${item.profit_loss.toFixed(2)}`,
+                                            `Prozent: ${item.profit_loss_percent.toFixed(2)}%`,
+                                            `Investiert: €${item.invested.toFixed(2)}`,
+                                            `Aktuell: €${item.current_value.toFixed(2)}`
+                                        ];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '€' + value.toFixed(0);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            async loadPerformanceChart() {
+                try {
+                    const response = await fetch(`${this.apiBase}/charts/portfolio/performance`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.renderPerformanceChart(result.data);
+                    } else {
+                        this.showError('performanceChart', result.error);
+                    }
+                } catch (error) {
+                    this.showError('performanceChart', 'Fehler beim Laden der Performance-Daten');
+                }
+            }
+
+            renderPerformanceChart(data) {
+                const ctx = document.getElementById('performanceChart').getContext('2d');
+                
+                if (this.charts.performance) {
+                    this.charts.performance.destroy();
+                }
+
+                this.charts.performance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(item => new Date(item.date).toLocaleDateString('de-DE')),
+                        datasets: [
+                            {
+                                label: 'Portfolio-Wert',
+                                data: data.map(item => item.portfolio_value),
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Investierter Betrag',
+                                data: data.map(item => item.invested_value),
+                                borderColor: '#a0aec0',
+                                backgroundColor: 'rgba(160, 174, 192, 0.1)',
+                                fill: false,
+                                borderDash: [5, 5]
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const item = data[context.dataIndex];
+                                        if (context.datasetIndex === 0) {
+                                            return `Portfolio: €${item.portfolio_value.toFixed(2)} (${item.profit_loss_percent.toFixed(2)}%)`;
+                                        } else {
+                                            return `Investiert: €${item.invested_value.toFixed(2)}`;
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '€' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxTicksLimit: 10
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            async loadComparisonChart() {
+                const etfSymbol = document.getElementById('etfCompareSelect').value;
+                const days = document.getElementById('timeRangeSelect').value;
+
+                try {
+                    const response = await fetch(`${this.apiBase}/charts/portfolio/vs-etf/${etfSymbol}?days=${days}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.renderComparisonChart(result.data, result.etf_symbol);
+                    } else {
+                        this.showError('comparisonChart', result.error);
+                    }
+                } catch (error) {
+                    this.showError('comparisonChart', 'Fehler beim Laden der Vergleichsdaten');
+                }
+            }
+
+            renderComparisonChart(data, etfSymbol) {
+                const ctx = document.getElementById('comparisonChart').getContext('2d');
+                
+                if (this.charts.comparison) {
+                    this.charts.comparison.destroy();
+                }
+
+                this.charts.comparison = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(item => new Date(item.date).toLocaleDateString('de-DE')),
+                        datasets: [
+                            {
+                                label: 'Mein Portfolio (%)',
+                                data: data.map(item => item.portfolio_performance),
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                fill: false,
+                                tension: 0.4
+                            },
+                            {
+                                label: `${etfSymbol} ETF (%)`,
+                                data: data.map(item => item.etf_performance),
+                                borderColor: '#f56565',
+                                backgroundColor: 'rgba(245, 101, 101, 0.1)',
+                                fill: false,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}%`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toFixed(1) + '%';
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxTicksLimit: 10
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            showError(chartId, message) {
+                const canvas = document.getElementById(chartId);
+                const container = canvas.parentElement;
+                container.innerHTML = `<div class="error-message">❌ ${message}</div>`;
+            }
+        }
+
+        // Global function for comparison chart update
+        function loadComparisonChart() {
+            if (window.portfolioCharts) {
+                window.portfolioCharts.loadComparisonChart();
+            }
+        }
+
+        // Initialize charts when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.portfolioCharts = new PortfolioCharts();
+        });
+    </script>
+</body>
+</html>
+
